@@ -7,7 +7,8 @@ import { BookOpen, BarChart3, Bell, Settings, FileText } from "lucide-react"
 
 const navItems = [
   { label: "Dashboard", href: "/student/dashboard", icon: <BarChart3 className="h-4 w-4" /> },
-  { label: "Courses", href: "/student/courses", icon: <BookOpen className="h-4 w-4" /> },
+  { label: "Enroll Course", href: "/student/enroll", icon: <BookOpen className="h-4 w-4" /> },
+  { label: "My Courses", href: "/student/courses", icon: <BookOpen className="h-4 w-4" /> },
   { label: "Attendance", href: "/student/attendance", icon: <Bell className="h-4 w-4" /> },
   { label: "Results", href: "/student/results", icon: <BarChart3 className="h-4 w-4" /> },
   { label: "Reports", href: "/student/reports", icon: <FileText className="h-4 w-4" /> },

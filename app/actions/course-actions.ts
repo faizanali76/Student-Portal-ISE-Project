@@ -29,7 +29,23 @@ export type Course = {
     }[]
 }
 
-// ... (TeacherOption and CourseAssignment types remain same)
+
+export type TeacherOption = {
+    id: string
+    full_name: string
+    department: string
+    campus?: string
+}
+
+export type CourseAssignment = {
+    id: string
+    course_id: string
+    teacher_id: string
+    teacher_name: string
+    section: string
+    department: string
+    campus: string
+}
 
 export async function getCourses() {
     try {
@@ -118,6 +134,7 @@ export async function createCourse(prevState: any, formData: FormData) {
         const courseCode = formData.get('courseCode') as string
         const courseName = formData.get('courseName') as string
         const credits = parseInt(formData.get('credits') as string)
+        const syllabus = formData.get('syllabus') as string
 
         if (!courseCode || !courseName || !credits) {
             return { success: false, message: "Missing required fields" }
@@ -138,7 +155,8 @@ export async function createCourse(prevState: any, formData: FormData) {
             .insert({
                 course_code: courseCode,
                 course_name: courseName,
-                credits: credits
+                credits: credits,
+                syllabus: syllabus
             })
 
         if (error) {

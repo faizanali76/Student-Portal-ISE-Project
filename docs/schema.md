@@ -14,6 +14,18 @@ CREATE TABLE public.attendance_records (
   CONSTRAINT attendance_records_enrollment_id_fkey FOREIGN KEY (enrollment_id) REFERENCES public.enrollments(id),
   CONSTRAINT attendance_records_marked_by_fkey FOREIGN KEY (marked_by) REFERENCES public.teachers(id)
 );
+CREATE TABLE public.course_assignments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  course_id uuid NOT NULL,
+  teacher_id uuid NOT NULL,
+  section text NOT NULL,
+  department text NOT NULL,
+  campus text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT course_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT course_assignments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT course_assignments_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id)
+);
 CREATE TABLE public.courses (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   course_code text NOT NULL UNIQUE,
@@ -27,6 +39,7 @@ CREATE TABLE public.courses (
   is_active boolean DEFAULT true,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  syllabus text,
   CONSTRAINT courses_pkey PRIMARY KEY (id),
   CONSTRAINT courses_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id)
 );
@@ -104,6 +117,7 @@ CREATE TABLE public.teachers (
   employee_id text NOT NULL UNIQUE,
   department text,
   designation text,
+  campus text,
   CONSTRAINT teachers_pkey PRIMARY KEY (id),
   CONSTRAINT teachers_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
