@@ -220,6 +220,7 @@ export async function createUser(prevState: any, formData: FormData): Promise<Cr
                     employee_id: empId,
                     department: formData.get('department') as string,
                     designation: "Lecturer", // Default
+                    campus: campus,
                 })
 
             if (dbError) {

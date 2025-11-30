@@ -1,148 +1,205 @@
 "use client"
-import { Button } from "@/components/ui/button"
-import { Plus, Edit2, Trash2, Search } from "lucide-react"
-import { useState } from "react"
 
-const courses = [
-  { code: "CS101", name: "Data Structures", teacher: "Dr. Hassan", credits: 3, students: 35, semester: "Fall 2024" },
-  {
-    code: "SE-1001",
-    name: "Software Engineering",
-    teacher: "Mr. Talha",
-    credits: 3,
-    students: 42,
-    semester: "Fall 2024",
-  },
-  { code: "MATH201", name: "Linear Algebra", teacher: "Dr. Sara", credits: 4, students: 28, semester: "Fall 2024" },
-  { code: "CS201", name: "Database Systems", teacher: "Dr. Ahmed", credits: 3, students: 38, semester: "Fall 2024" },
-]
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Plus, Search, Loader2, Pencil, Trash2, Users } from "lucide-react"
+import { toast } from "sonner"
+import { createCourse, getCourses, type Course } from "@/app/actions/course-actions"
 
 export default function CoursesPage() {
+  const [courses, setCourses] = useState<Course[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const filteredCourses = courses.filter(
-    (c) => c.code.includes(searchQuery.toUpperCase()) || c.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  useEffect(() => {
+    loadCourses()
+  }, [])
+
+  const loadCourses = async () => {
+    setLoading(true)
+    const data = await getCourses()
+    setCourses(data)
+    setLoading(false)
+  }
+
+  const handleCreateCourse = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const form = e.currentTarget
+    const formData = new FormData(form)
+
+    const result = await createCourse(null, formData)
+
+    setIsSubmitting(false)
+
+    if (result.success) {
+      toast.success(result.message)
+      setIsAddOpen(false)
+      form.reset()
+      loadCourses()
+    } else {
+      toast.error(result.message || "Failed to create course")
+    }
+  }
+
+  const filteredCourses = courses.filter(course =>
+    course.course_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.course_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Courses</h1>
+    <div className="p-6 lg:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Courses</h1>
           <p className="text-sm text-muted-foreground">Manage all courses in the system</p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" />
-          Add Course
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search courses by code or name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-md border border-border bg-input text-sm text-foreground placeholder-muted-foreground"
-        />
-      </div>
-
-      {/* Add Course Form */}
-      {showAddForm && (
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Add New Course</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium text-foreground">Course Code</label>
-              <input
-                type="text"
-                placeholder="CS301"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Course Name</label>
-              <input
-                type="text"
-                placeholder="Algorithm Design"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Credits</label>
-              <input
-                type="number"
-                placeholder="3"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Assign Teacher</label>
-              <select className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground">
-                <option>Select Teacher</option>
-                <option>Dr. Hassan</option>
-                <option>Mr. Talha</option>
-                <option>Dr. Sara</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowAddForm(false)}
-              className="border-border hover:bg-secondary text-foreground"
-            >
-              Cancel
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" /> Add Course
             </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Create Course</Button>
-          </div>
-        </div>
-      )}
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Course</DialogTitle>
+              <DialogDescription>Enter the course details below.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateCourse} className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="courseCode">Course Code</Label>
+                <Input id="courseCode" name="courseCode" placeholder="CS301" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="courseName">Course Name</Label>
+                <Input id="courseName" name="courseName" placeholder="Algorithm Design" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="credits">Credits</Label>
+                <Input
+                  id="credits"
+                  name="credits"
+                  type="number"
+                  min="1"
+                  max="4"
+                  placeholder="3"
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create Course
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {/* Courses Table */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Code</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Teacher</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Credits</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Students</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredCourses.map((course) => (
-                <tr key={course.code} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-xs text-foreground font-medium">{course.code}</td>
-                  <td className="px-6 py-4 text-foreground">{course.name}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{course.teacher}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{course.credits}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{course.students}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-foreground hover:text-primary">
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-foreground hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search courses by code or name..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="p-0" />
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Teachers</TableHead>
+                <TableHead>Credits</TableHead>
+                <TableHead>Students</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredCourses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    No courses found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredCourses.map((course) => (
+                  <TableRow key={course.id}>
+                    <TableCell className="font-medium">{course.course_code}</TableCell>
+                    <TableCell>{course.course_name}</TableCell>
+                    <TableCell>
+                      {course.assignments && course.assignments.length > 0 ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto font-normal text-primary">
+                              {course.assignments.length} Teacher{course.assignments.length > 1 ? 's' : ''}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-medium leading-none">Assigned Teachers</h4>
+                              <div className="grid gap-2">
+                                {course.assignments.map((a, i) => (
+                                  <div key={i} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{a.teacher_name}</span>
+                                      <span className="text-xs text-muted-foreground">Campus: {a.campus}</span>
+                                    </div>
+                                    <div className="bg-secondary px-2 py-1 rounded text-xs">
+                                      Sec: {a.section}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <span className="text-muted-foreground italic">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{course.credits}</TableCell>
+                    <TableCell>{course.student_count}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

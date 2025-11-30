@@ -1,57 +1,128 @@
 "use client"
 
-import { StatCard } from "@/components/stat-card"
-import { Users, BookOpen, Activity } from "lucide-react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users, GraduationCap, BookOpen, Activity, ArrowUpRight, Plus, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-const recentActivities = [
-  { action: "Course Created", detail: "Dr. Ahmed created CS401", time: "2 mins ago" },
-  { action: "User Enrolled", detail: "Ali Ahmed enrolled in SE-1001", time: "15 mins ago" },
-  { action: "Marks Updated", detail: "Dr. Hassan uploaded Midterm for CS101", time: "1 hour ago" },
-  { action: "Account Created", detail: "New student Fatima Khan registered", time: "3 hours ago" },
-]
+import { getDashboardStats, getRecentActivity, type DashboardStats, type ActivityItem } from "@/app/actions/dashboard-actions"
+import { formatDistanceToNow } from "date-fns"
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<DashboardStats>({ totalStudents: 0, totalTeachers: 0, totalCourses: 0 })
+  const [activity, setActivity] = useState<ActivityItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadData() {
+      const [statsData, activityData] = await Promise.all([
+        getDashboardStats(),
+        getRecentActivity()
+      ])
+      setStats(statsData)
+      setActivity(activityData)
+      setLoading(false)
+    }
+    loadData()
+  }, [])
+
   return (
-    <div className="space-y-6 p-6 lg:p-8">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">System Overview</h1>
+    <div className="p-6 lg:p-8 space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">System Overview</h1>
         <p className="text-sm text-muted-foreground">Monitor and manage your institution</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Students" value="1,234" icon={<Users className="h-5 w-5" />} />
-        <StatCard label="Total Teachers" value="45" icon={<Users className="h-5 w-5" />} />
-        <StatCard label="Total Courses" value="120" icon={<BookOpen className="h-5 w-5" />} />
-        <StatCard label="System Status" value="Healthy" icon={<Activity className="h-5 w-5" />} />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : stats.totalStudents}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : stats.totalTeachers}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : stats.totalCourses}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">System Status</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">Healthy</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3">
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Add Course</Button>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Add User</Button>
-        <Button variant="outline" className="border-border hover:bg-secondary bg-transparent">
-          View Reports
-        </Button>
+      <div className="flex flex-wrap gap-4">
+        <Link href="/admin/courses">
+          <Button className="gap-2 bg-red-600 hover:bg-red-700 text-white">
+            <Plus className="h-4 w-4" /> Add Course
+          </Button>
+        </Link>
+        <Link href="/admin/users/students">
+          <Button className="gap-2 bg-red-600 hover:bg-red-700 text-white">
+            <Plus className="h-4 w-4" /> Add Student
+          </Button>
+        </Link>
+        <Link href="/admin/users/teachers">
+          <Button className="gap-2 bg-red-600 hover:bg-red-700 text-white">
+            <Plus className="h-4 w-4" /> Add Teacher
+          </Button>
+        </Link>
+        <Link href="/admin/reports">
+          <Button variant="outline" className="gap-2">
+            <FileText className="h-4 w-4" /> View Reports
+          </Button>
+        </Link>
       </div>
 
       {/* Recent Activity */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">Recent Activity</h2>
-        <div className="space-y-3">
-          {recentActivities.map((activity, idx) => (
-            <div key={idx} className="flex items-start justify-between border-b border-border py-3 last:border-0">
-              <div className="space-y-1">
-                <p className="font-medium text-sm text-foreground">{activity.action}</p>
-                <p className="text-xs text-muted-foreground">{activity.detail}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">{activity.time}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-8">
+            {loading ? (
+              <div className="text-sm text-muted-foreground">Loading activity...</div>
+            ) : activity.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No recent activity found.</div>
+            ) : (
+              activity.map((item) => (
+                <div key={item.id} className="flex items-center">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">{item.message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(item.timestamp, { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
