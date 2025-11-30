@@ -1,131 +1,155 @@
 "use client"
-import { Button } from "@/components/ui/button"
-import { Plus, Edit2, Trash2, Search } from "lucide-react"
+
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2, Download } from "lucide-react"
+import { createUser } from "@/app/actions/create-user"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-const teachers = [
-  { id: 1, name: "Dr. Hassan", email: "dr.hassan@nu.edu.pk", department: "Computer Science", courses: 2 },
-  { id: 2, name: "Mr. Talha", email: "talha@nu.edu.pk", department: "Software Engineering", courses: 2 },
-  { id: 3, name: "Dr. Sara", email: "dr.sara@nu.edu.pk", department: "Mathematics", courses: 1 },
-]
+export default function AddTeacherPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
 
-export default function TeachersPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showAddForm, setShowAddForm] = useState(false)
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+    const form = e.currentTarget // Capture form reference
 
-  const filteredTeachers = teachers.filter(
-    (t) => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.email.includes(searchQuery),
-  )
+    const formData = new FormData(form)
+    formData.append('role', 'teacher')
+
+    const result = await createUser(null, formData)
+
+    setLoading(false)
+
+    if (result.success && result.credentials) {
+      setCredentials(result.credentials)
+      toast.success("Teacher created successfully!")
+      form.reset()
+    } else {
+      toast.error(result.message || "Failed to create teacher")
+    }
+  }
+
+  const downloadCredentials = () => {
+    if (!credentials) return
+
+    const text = `
+Teacher Portal Credentials
+--------------------------
+Email: ${credentials.email}
+Password: ${credentials.password}
+--------------------------
+Please change your password after first login.
+    `.trim()
+
+    const blob = new Blob([text], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `teacher-credentials-${credentials.email.split('@')[0]}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    setCredentials(null)
+  }
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Teachers</h1>
-          <p className="text-sm text-muted-foreground">Manage teacher accounts and assignments</p>
-        </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" />
-          Add Teacher
-        </Button>
+    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Add Teacher</h1>
+        <p className="text-sm text-muted-foreground">Create a new teacher account</p>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-md border border-border bg-input text-sm text-foreground placeholder-muted-foreground"
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Teacher Information</CardTitle>
+          <CardDescription>Enter the teacher's details below to create their account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input id="name" name="name" placeholder="Dr. Hassan Ali" required />
+              </div>
 
-      {showAddForm && (
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Add New Teacher</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium text-foreground">Full Name</label>
-              <input
-                type="text"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Campus *</Label>
+                  <Select name="campus" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select campus" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="F">Faisalabad (F)</SelectItem>
+                      <SelectItem value="L">Lahore (L)</SelectItem>
+                      <SelectItem value="I">Islamabad (I)</SelectItem>
+                      <SelectItem value="K">Karachi (K)</SelectItem>
+                      <SelectItem value="P">Peshawar (P)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Department *</Label>
+                  <Select name="department" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CS">Computer Science</SelectItem>
+                      <SelectItem value="SE">Software Engineering</SelectItem>
+                      <SelectItem value="AI">Artificial Intelligence</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Email</label>
-              <input
-                type="email"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
+
+            <div className="flex gap-4">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Teacher
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.back()}>
+                Cancel
+              </Button>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Department</label>
-              <select className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground">
-                <option>Computer Science</option>
-                <option>Software Engineering</option>
-                <option>Mathematics</option>
-              </select>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Credentials Dialog */}
+      <Dialog open={!!credentials} onOpenChange={(open) => !open && setCredentials(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Teacher Created Successfully</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-md bg-muted p-4 space-y-2 font-mono text-sm">
+              <p><strong>Email:</strong> {credentials?.email}</p>
+              <p><strong>Password:</strong> {credentials?.password}</p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Password</label>
-              <input
-                type="password"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Download these credentials and share them with the teacher. They won't be shown again.
+            </p>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowAddForm(false)}
-              className="border-border hover:bg-secondary text-foreground"
-            >
-              Cancel
+          <DialogFooter>
+            <Button onClick={downloadCredentials} className="w-full gap-2">
+              <Download className="h-4 w-4" /> Download Credentials
             </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Add Teacher</Button>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Email</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Department</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Courses</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredTeachers.map((teacher) => (
-                <tr key={teacher.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-foreground">{teacher.name}</td>
-                  <td className="px-6 py-4 text-muted-foreground text-xs">{teacher.email}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{teacher.department}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{teacher.courses}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-foreground hover:text-primary">
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-foreground hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

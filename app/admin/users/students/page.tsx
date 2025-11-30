@@ -1,160 +1,218 @@
 "use client"
-import { Button } from "@/components/ui/button"
-import { Plus, Edit2, Trash2, Search } from "lucide-react"
+
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2, Download } from "lucide-react"
+import { createUser } from "@/app/actions/create-user"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-const students = [
-  {
-    rollNo: "24F-3001",
-    name: "Ali Ahmed",
-    email: "ali.ahmed@nu.edu.pk",
-    batch: "BSE-3B",
-    program: "BS Software Engineering",
-  },
-  {
-    rollNo: "24F-3002",
-    name: "Fatima Khan",
-    email: "fatima@nu.edu.pk",
-    batch: "BSE-3A",
-    program: "BS Software Engineering",
-  },
-  {
-    rollNo: "24F-3003",
-    name: "Hassan Ali",
-    email: "hassan@nu.edu.pk",
-    batch: "BSE-3B",
-    program: "BS Software Engineering",
-  },
-  { rollNo: "24F-3004", name: "Sara Khan", email: "sara@nu.edu.pk", batch: "BCS-3A", program: "BS Computer Science" },
-  {
-    rollNo: "24F-3005",
-    name: "Ahmed Raza",
-    email: "ahmed@nu.edu.pk",
-    batch: "BSE-3B",
-    program: "BS Software Engineering",
-  },
-]
+export default function AddStudentPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [credentials, setCredentials] = useState<{ email: string; password: string; rollNo?: string } | null>(null)
+  const [selectedDept, setSelectedDept] = useState("")
+  const [selectedSemester, setSelectedSemester] = useState("")
 
-export default function StudentsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showAddForm, setShowAddForm] = useState(false)
+  const getSections = () => {
+    if (!selectedDept || !selectedSemester) return []
 
-  const filteredStudents = students.filter(
-    (s) => s.rollNo.includes(searchQuery) || s.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+    let count = 0
+    if (selectedDept === 'CS' || selectedDept === 'BCS') count = 3
+    else if (selectedDept === 'SE' || selectedDept === 'BSE') count = 2
+    else if (selectedDept === 'AI' || selectedDept === 'BAI') count = 1
+
+    const sections = []
+    const letters = ['A', 'B', 'C']
+    for (let i = 0; i < count; i++) {
+      sections.push(`${selectedSemester}${letters[i]}`)
+    }
+    return sections
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+    const form = e.currentTarget // Capture form reference
+
+    const formData = new FormData(form)
+    formData.append('role', 'student')
+
+    const result = await createUser(null, formData)
+
+    setLoading(false)
+
+    if (result.success && result.credentials) {
+      setCredentials(result.credentials)
+      toast.success("Student created successfully!")
+      // Reset form
+      form.reset()
+      setSelectedDept("")
+      setSelectedSemester("")
+    } else {
+      toast.error(result.message || "Failed to create student")
+    }
+  }
+
+  const downloadCredentials = () => {
+    if (!credentials) return
+
+    const text = `
+Student Portal Credentials
+--------------------------
+Email: ${credentials.email}
+Password: ${credentials.password}
+Roll No: ${credentials.rollNo}
+--------------------------
+Please change your password after first login.
+    `.trim()
+
+    const blob = new Blob([text], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `student-credentials-${credentials.rollNo}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    setCredentials(null)
+  }
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Students</h1>
-          <p className="text-sm text-muted-foreground">Manage student accounts and enrollment</p>
-        </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" />
-          Add Student
-        </Button>
+    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Add Student</h1>
+        <p className="text-sm text-muted-foreground">Create a new student account</p>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search by roll number or name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-md border border-border bg-input text-sm text-foreground placeholder-muted-foreground"
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Student Information</CardTitle>
+          <CardDescription>Enter the student's details below to create their account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input id="name" name="name" placeholder="Ali Ahmed" required />
+              </div>
 
-      {showAddForm && (
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Add New Student</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium text-foreground">Roll Number</label>
-              <input
-                type="text"
-                placeholder="24F-3010"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Campus *</Label>
+                  <Select name="campus" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select campus" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="F">Faisalabad (F)</SelectItem>
+                      <SelectItem value="L">Lahore (L)</SelectItem>
+                      <SelectItem value="I">Islamabad (I)</SelectItem>
+                      <SelectItem value="K">Karachi (K)</SelectItem>
+                      <SelectItem value="P">Peshawar (P)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Batch Year *</Label>
+                  <Input name="batchYear" placeholder="24" maxLength={2} required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Program *</Label>
+                  <Select name="program" required onValueChange={setSelectedDept}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select program" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BSE">BSE (Software Engineering)</SelectItem>
+                      <SelectItem value="BCS">BCS (Computer Science)</SelectItem>
+                      <SelectItem value="BAI">BAI (Artificial Intelligence)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Semester *</Label>
+                  <Select name="semester" required onValueChange={setSelectedSemester}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Section *</Label>
+                  <Select name="section" required disabled={!selectedDept || !selectedSemester}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSections().map(sec => (
+                        <SelectItem key={sec} value={sec}>{sec}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Roll Number (4 Digits) *</Label>
+                  <Input name="rollNo" placeholder="3029" maxLength={4} required />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Full Name</label>
-              <input
-                type="text"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
+
+            <div className="flex gap-4">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Student
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.back()}>
+                Cancel
+              </Button>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Email</label>
-              <input
-                type="email"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-              />
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Credentials Dialog */}
+      <Dialog open={!!credentials} onOpenChange={(open) => !open && setCredentials(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Student Created Successfully</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-md bg-muted p-4 space-y-2 font-mono text-sm">
+              <p><strong>Email:</strong> {credentials?.email}</p>
+              <p><strong>Password:</strong> {credentials?.password}</p>
+              <p><strong>Roll No:</strong> {credentials?.rollNo}</p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Batch</label>
-              <select className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground">
-                <option>BSE-3B</option>
-                <option>BSE-3A</option>
-                <option>BCS-3A</option>
-              </select>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Download these credentials and share them with the student. They won't be shown again.
+            </p>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowAddForm(false)}
-              className="border-border hover:bg-secondary text-foreground"
-            >
-              Cancel
+          <DialogFooter>
+            <Button onClick={downloadCredentials} className="w-full gap-2">
+              <Download className="h-4 w-4" /> Download Credentials
             </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Add Student</Button>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Roll No</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Email</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Batch</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Program</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredStudents.map((student) => (
-                <tr key={student.rollNo} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-xs text-foreground font-medium">{student.rollNo}</td>
-                  <td className="px-6 py-4 text-foreground">{student.name}</td>
-                  <td className="px-6 py-4 text-muted-foreground text-xs">{student.email}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{student.batch}</td>
-                  <td className="px-6 py-4 text-muted-foreground text-xs">{student.program}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-foreground hover:text-primary">
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-foreground hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

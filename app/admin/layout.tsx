@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { Sidebar } from "@/components/sidebar"
-import { BarChart3, Users, BookOpen, Settings, FileText } from "lucide-react"
+import { BarChart3, Users, BookOpen, Settings, FileText, GraduationCap, UserCog } from "lucide-react"
 
 const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: <BarChart3 className="h-4 w-4" /> },
@@ -12,9 +12,8 @@ const navItems = [
     href: "/admin/users",
     icon: <Users className="h-4 w-4" />,
     children: [
-      { label: "Students", href: "/admin/users/students", icon: null },
-      { label: "Teachers", href: "/admin/users/teachers", icon: null },
-      { label: "Admins", href: "/admin/users/admins", icon: null },
+      { label: "Students", href: "/admin/users/students", icon: <GraduationCap className="h-4 w-4" /> },
+      { label: "Teachers", href: "/admin/users/teachers", icon: <UserCog className="h-4 w-4" /> },
     ],
   },
   { label: "Courses", href: "/admin/courses", icon: <BookOpen className="h-4 w-4" /> },

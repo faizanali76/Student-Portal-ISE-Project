@@ -67,21 +67,31 @@ export function Sidebar({ navItems, title, role }: SidebarProps) {
               <div key={item.label}>
                 {item.children ? (
                   <div>
-                    <button
-                      onClick={() => toggleExpand(item.label)}
-                      className="flex w-full items-center justify-between rounded-md px-4 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between rounded-md px-4 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors">
+                      <Link
+                        href={item.href}
+                        className="flex items-center gap-3 flex-1"
+                        onClick={() => setIsOpen(false)}
+                      >
                         {item.icon}
                         {item.label}
-                      </div>
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 transition-transform",
-                          expandedItems.includes(item.label) && "rotate-180",
-                        )}
-                      />
-                    </button>
+                      </Link>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          toggleExpand(item.label)
+                        }}
+                        className="p-1 hover:bg-sidebar-accent rounded-sm"
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            expandedItems.includes(item.label) && "rotate-180",
+                          )}
+                        />
+                      </button>
+                    </div>
                     {expandedItems.includes(item.label) && (
                       <div className="space-y-0.5 pl-4">
                         {item.children.map((child) => (
