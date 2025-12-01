@@ -135,6 +135,10 @@ export async function createCourse(prevState: any, formData: FormData) {
         const courseName = formData.get('courseName') as string
         const credits = parseInt(formData.get('credits') as string)
         const syllabus = formData.get('syllabus') as string
+        const numAssignments = parseInt(formData.get('numAssignments') as string) || 0
+        const numQuizzes = parseInt(formData.get('numQuizzes') as string) || 0
+        const numMidterms = 2 // Fixed
+        const numFinals = 1 // Fixed
 
         if (!courseCode || !courseName || !credits) {
             return { success: false, message: "Missing required fields" }
@@ -156,7 +160,11 @@ export async function createCourse(prevState: any, formData: FormData) {
                 course_code: courseCode,
                 course_name: courseName,
                 credits: credits,
-                syllabus: syllabus
+                syllabus: syllabus,
+                num_assignments: numAssignments,
+                num_quizzes: numQuizzes,
+                num_midterms: numMidterms,
+                num_finals: numFinals
             })
 
         if (error) {

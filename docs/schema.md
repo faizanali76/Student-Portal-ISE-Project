@@ -1,8 +1,18 @@
-## db schema
+# DB Schema
 
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.assessments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  course_id uuid NOT NULL,
+  type text NOT NULL,
+  name text NOT NULL,
+  total_marks numeric NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT assessments_pkey PRIMARY KEY (id),
+  CONSTRAINT assessments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
 CREATE TABLE public.attendance_records (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   enrollment_id uuid NOT NULL,
@@ -40,6 +50,10 @@ CREATE TABLE public.courses (
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   syllabus text,
+  num_assignments integer DEFAULT 0,
+  num_quizzes integer DEFAULT 0,
+  num_midterms integer DEFAULT 2,
+  num_finals integer DEFAULT 1,
   CONSTRAINT courses_pkey PRIMARY KEY (id),
   CONSTRAINT courses_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id)
 );
@@ -100,6 +114,16 @@ CREATE TABLE public.profiles (
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.student_marks (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  assessment_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  obtained_marks numeric NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT student_marks_pkey PRIMARY KEY (id),
+  CONSTRAINT student_marks_assessment_id_fkey FOREIGN KEY (assessment_id) REFERENCES public.assessments(id),
+  CONSTRAINT student_marks_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id)
 );
 CREATE TABLE public.students (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

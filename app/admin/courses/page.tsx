@@ -94,6 +94,43 @@ export default function CoursesPage() {
                   required
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="numAssignments">Assignments (4-6)</Label>
+                  <Input
+                    id="numAssignments"
+                    name="numAssignments"
+                    type="number"
+                    min="4"
+                    max="6"
+                    placeholder="4"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="numQuizzes">Quizzes (4-7)</Label>
+                  <Input
+                    id="numQuizzes"
+                    name="numQuizzes"
+                    type="number"
+                    min="4"
+                    max="7"
+                    placeholder="4"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Midterms</Label>
+                  <Input value="2" disabled className="bg-muted" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Finals</Label>
+                  <Input value="1" disabled className="bg-muted" />
+                </div>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="syllabus">Syllabus</Label>
                 <textarea
@@ -209,6 +246,6 @@ export default function CoursesPage() {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </div >
   )
 }
