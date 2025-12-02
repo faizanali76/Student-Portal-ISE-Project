@@ -13,6 +13,24 @@ const supabaseAdmin = createClient(
     }
 )
 
+export type EnrolledCourse = {
+    id: string
+    course_code: string
+    course_name: string
+    teacher_name: string
+    credits: number
+    section: string
+}
+
+export type AvailableCourse = {
+    id: string
+    course_code: string
+    course_name: string
+    credits: number
+    syllabus: string
+    teachers: string[]
+}
+
 function calculateGrade(percentage: number) {
     if (percentage >= 90) return { letter: 'A+', gpa: 4.00 }
     if (percentage >= 86) return { letter: 'A', gpa: 4.00 }
@@ -59,14 +77,33 @@ export async function getStudentAttendance(userId: string) {
                 .eq('status', 'present')
 
             // Get total conducted classes (unique dates for this course)
-            const { data: conductedDates } = await supabaseAdmin
+            // Get total conducted classes (unique dates for this course)
+            const { data: allRecords } = await supabaseAdmin
                 .from('attendance_records')
-                .select('date, enrollments!inner(course_id)')
+                .select('date, status, enrollments!inner(course_id)')
                 .eq('enrollments.course_id', e.course_id)
+                .order('date', { ascending: true })
 
             // Filter unique dates
-            const uniqueDates = new Set(conductedDates?.map((d: any) => d.date))
-            const classesConducted = uniqueDates.size
+            const uniqueDates = Array.from(new Set(allRecords?.map((d: any) => d.date)))
+            const classesConducted = uniqueDates.length
+
+            // Get this student's specific records
+            const { data: studentRecords } = await supabaseAdmin
+                .from('attendance_records')
+                .select('date, status')
+                .eq('enrollment_id', e.id)
+
+            // Build history
+            const history = uniqueDates.map((date: any) => {
+                const record = studentRecords?.find((r: any) => r.date === date)
+                const isPresent = record?.status === 'present'
+                return {
+                    date,
+                    present: isPresent ? 1 : 0,
+                    absent: isPresent ? 0 : 1
+                }
+            })
 
             const percentage = classesConducted > 0
                 ? Math.round(((presentCount || 0) / classesConducted) * 100)
@@ -77,7 +114,9 @@ export async function getStudentAttendance(userId: string) {
                 courseName: course.course_name,
                 classesConducted,
                 classesAttended: presentCount || 0,
-                percentage
+                percentage,
+                history,
+                totalClasses: course.total_classes || 30 // Default to 30 if not set
             }
         }))
 
@@ -101,6 +140,21 @@ export async function getNotifications(userId: string) {
     } catch (error) {
         console.error('Error fetching notifications:', error)
         return []
+    }
+}
+
+export async function markNotificationRead(notificationId: string) {
+    try {
+        const { error } = await supabaseAdmin
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', notificationId)
+
+        if (error) throw error
+        return true
+    } catch (error) {
+        console.error('Error marking notification read:', error)
+        return false
     }
 }
 
@@ -395,5 +449,161 @@ export async function getStudentDashboard(userId: string) {
     } catch (error) {
         console.error('Error fetching student dashboard:', error)
         return null
+    }
+}
+
+export async function getStudentCourses(userId: string) {
+    try {
+        // 1. Get Student ID
+        const { data: student } = await supabaseAdmin
+            .from('students')
+            .select('id')
+            .eq('user_id', userId)
+            .single()
+
+        if (!student) return []
+
+        // 2. Get Enrollments with Course Details
+        const { data: enrollments } = await supabaseAdmin
+            .from('enrollments')
+            .select(`
+                id,
+                courses (
+                    id,
+                    course_code,
+                    course_name,
+                    credits
+                )
+            `)
+            .eq('student_id', student.id)
+
+        if (!enrollments) return []
+
+        // 3. For each course, get teacher and section info
+        const courses = await Promise.all(enrollments.map(async (e: any) => {
+            const course = Array.isArray(e.courses) ? e.courses[0] : e.courses
+
+            // Get teacher assignment for this course
+            // Note: This assumes one teacher per course for now, or takes the first one
+            const { data: assignment } = await supabaseAdmin
+                .from('course_assignments')
+                .select('section, teachers(profiles(full_name))')
+                .eq('course_id', course.id)
+                .single()
+
+            const teacherName = assignment?.teachers?.profiles?.full_name || 'TBD'
+            const section = assignment?.section || 'A'
+
+            return {
+                id: course.id,
+                course_code: course.course_code,
+                course_name: course.course_name,
+                teacher_name: teacherName,
+                credits: course.credits,
+                section: section
+            }
+        }))
+
+        return courses
+
+    } catch (error) {
+        console.error('Error fetching student courses:', error)
+        return []
+    }
+}
+
+export async function getAvailableCourses(studentId: string): Promise<AvailableCourse[]> {
+    try {
+        // 1. Get Student ID
+        const { data: student } = await supabaseAdmin
+            .from('students')
+            .select('id')
+            .eq('user_id', studentId)
+            .single()
+
+        if (!student) return []
+
+        // 2. Get courses student is ALREADY enrolled in
+        const { data: enrolled } = await supabaseAdmin
+            .from('enrollments')
+            .select('course_id')
+            .eq('student_id', student.id)
+
+        const enrolledIds = enrolled?.map(e => e.course_id) || []
+
+        // 3. Get ALL courses
+        const { data: allCourses } = await supabaseAdmin
+            .from('courses')
+            .select('*')
+
+        if (!allCourses) return []
+
+        // 4. Filter out enrolled courses
+        const available = allCourses.filter(c => !enrolledIds.includes(c.id))
+
+        // 5. Get teacher info for available courses
+        const coursesWithTeachers = await Promise.all(available.map(async (c) => {
+            const { data: assignments } = await supabaseAdmin
+                .from('course_assignments')
+                .select('teachers(profiles(full_name))')
+                .eq('course_id', c.id)
+
+            const teachers = assignments?.map((a: any) => a.teachers?.profiles?.full_name).filter(Boolean) || []
+
+            return {
+                id: c.id,
+                course_code: c.course_code,
+                course_name: c.course_name,
+                credits: c.credits,
+                syllabus: c.syllabus || '',
+                teachers: teachers.length > 0 ? teachers : ['TBD']
+            }
+        }))
+
+        return coursesWithTeachers
+
+    } catch (error) {
+        console.error('Error fetching available courses:', error)
+        return []
+    }
+}
+
+export async function enrollCourse(studentUserId: string, courseId: string) {
+    try {
+        // 1. Get Student ID
+        const { data: student } = await supabaseAdmin
+            .from('students')
+            .select('id')
+            .eq('user_id', studentUserId)
+            .single()
+
+        if (!student) return { success: false, message: 'Student not found' }
+
+        // 2. Check if already enrolled
+        const { data: existing } = await supabaseAdmin
+            .from('enrollments')
+            .select('id')
+            .eq('student_id', student.id)
+            .eq('course_id', courseId)
+            .single()
+
+        if (existing) return { success: false, message: 'Already enrolled in this course' }
+
+        // 3. Enroll
+        const { error } = await supabaseAdmin
+            .from('enrollments')
+            .insert({
+                student_id: student.id,
+                course_id: courseId,
+                enrollment_date: new Date().toISOString()
+            })
+
+        if (error) throw error
+
+        return { success: true, message: 'Successfully enrolled in course' }
+
+    } catch (error) {
+        console.error('Error enrolling in course:', error)
+        return { success: false, message: 'Failed to enroll in course' }
     }
 }
