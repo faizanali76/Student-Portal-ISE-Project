@@ -191,9 +191,6 @@ Please change your password after first login.
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Manage Users</h1>
           <p className="text-sm text-muted-foreground">Add and manage students and teachers</p>
         </div>
-        <Button onClick={() => setIsAddUserOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-          <Plus className="h-4 w-4" /> Add User
-        </Button>
       </div>
 
       {/* Tabs */}

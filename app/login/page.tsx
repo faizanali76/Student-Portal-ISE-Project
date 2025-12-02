@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const supabase = createClient()
@@ -119,20 +118,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center space-x-2">
-              <input
-                id="remember"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-border"
-              />
-              <label htmlFor="remember" className="text-sm text-muted-foreground">
-                Remember me for 30 days
-              </label>
-            </div>
-
             {/* Submit */}
             <Button
               type="submit"
@@ -142,14 +127,6 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="space-y-2 rounded-md bg-muted/50 p-4 text-xs">
-            <p className="font-medium text-muted-foreground">Note:</p>
-            <p className="text-muted-foreground">
-              Please ensure you have created users in your Supabase Auth dashboard to log in.
-            </p>
-          </div>
         </div>
       </div>
     </div>

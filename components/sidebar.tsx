@@ -19,9 +19,11 @@ interface SidebarProps {
   navItems: NavItem[]
   title: string
   role: string
+  userName?: string
+  userInfo?: string // email for teachers/admin, roll number for students
 }
 
-export function Sidebar({ navItems, title, role }: SidebarProps) {
+export function Sidebar({ navItems, title, role, userName, userInfo }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
@@ -56,7 +58,10 @@ export function Sidebar({ navItems, title, role }: SidebarProps) {
       >
         {/* Header */}
         <div className="border-b border-sidebar-border p-6">
-          <h1 className="text-lg font-bold tracking-tight">{title}</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <img src="/myPortal-removebg-preview.png" alt="MyPortal" className="h-8 w-8 object-contain" />
+            <h1 className="text-lg font-bold tracking-tight">{title}</h1>
+          </div>
           <p className="text-xs text-muted-foreground capitalize">{role}</p>
         </div>
 
@@ -131,6 +136,18 @@ export function Sidebar({ navItems, title, role }: SidebarProps) {
             ))}
           </div>
         </nav>
+
+        {/* User Info - Above Logout */}
+        {userName && (
+          <div className="border-t border-sidebar-border px-3 py-3">
+            <div className="px-4 py-2 space-y-0.5">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{userName}</p>
+              {userInfo && (
+                <p className="text-xs text-muted-foreground truncate">{userInfo}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Logout - Made functional and fixed spacing */}
         <div className="border-t border-sidebar-border p-3">

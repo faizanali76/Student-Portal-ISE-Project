@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 import { createClient } from "@/utils/supabase/client"
 import { getTeacherDashboardStats, getAttendanceTrend } from "@/app/actions/teacher-actions"
 
@@ -62,11 +63,12 @@ export default function TeacherDashboard() {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Mark Attendance</Button>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Upload Marks</Button>
-        <Button variant="outline" className="border-border hover:bg-secondary bg-transparent">
-          View Reports
-        </Button>
+        <Link href="/teacher/attendance">
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Mark Attendance</Button>
+        </Link>
+        <Link href="/teacher/marks">
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Upload Marks</Button>
+        </Link>
       </div>
 
       {/* Courses Overview */}
