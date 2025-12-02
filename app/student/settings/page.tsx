@@ -1,6 +1,6 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { User, Lock, Bell, Shield } from "lucide-react"
+import { User } from "lucide-react"
 import { useState } from "react"
 
 export default function StudentSettingsPage() {
@@ -17,20 +17,16 @@ export default function StudentSettingsPage() {
       <div className="flex gap-2 border-b border-border overflow-x-auto">
         {[
           { id: "profile", label: "Profile", icon: User },
-          { id: "password", label: "Password", icon: Lock },
-          { id: "notifications", label: "Notifications", icon: Bell },
-          { id: "privacy", label: "Privacy", icon: Shield },
         ].map((tab) => {
           const Icon = tab.icon
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-[2px] ${
-                activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-[2px] ${activeTab === tab.id
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
             >
               <Icon className="h-4 w-4" />
               {tab.label}
@@ -63,10 +59,10 @@ export default function StudentSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground">Phone</label>
+                  <label className="text-sm font-medium text-foreground">Campus</label>
                   <input
-                    type="tel"
-                    defaultValue="+92-300-1234567"
+                    type="text"
+                    defaultValue="Islamabad"
                     className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
                   />
                 </div>
@@ -81,88 +77,6 @@ export default function StudentSettingsPage() {
                 </div>
               </div>
               <Button className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Save Changes</Button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "password" && (
-          <div className="space-y-6">
-            <div className="rounded-lg border border-border bg-card p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Change Password</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground">Current Password</label>
-                  <input
-                    type="password"
-                    className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">New Password</label>
-                  <input
-                    type="password"
-                    className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">Confirm Password</label>
-                  <input
-                    type="password"
-                    className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input text-foreground"
-                  />
-                </div>
-              </div>
-              <Button className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Update Password</Button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "notifications" && (
-          <div className="space-y-6">
-            <div className="rounded-lg border border-border bg-card p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Notification Preferences</h2>
-              <div className="space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="h-4 w-4 rounded" />
-                  <span className="text-sm text-foreground">Attendance Alerts</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="h-4 w-4 rounded" />
-                  <span className="text-sm text-foreground">New Marks Posted</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="h-4 w-4 rounded" />
-                  <span className="text-sm text-foreground">Course Announcements</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" className="h-4 w-4 rounded" />
-                  <span className="text-sm text-foreground">System Maintenance Alerts</span>
-                </label>
-              </div>
-              <Button className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Save Preferences</Button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "privacy" && (
-          <div className="space-y-6">
-            <div className="rounded-lg border border-border bg-card p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Privacy Settings</h2>
-              <div className="space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="h-4 w-4 rounded" />
-                  <span className="text-sm text-foreground">Show profile to other students</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="h-4 w-4 rounded" />
-                  <span className="text-sm text-foreground">Show grades to teachers only</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" className="h-4 w-4 rounded" />
-                  <span className="text-sm text-foreground">Allow data analytics</span>
-                </label>
-              </div>
-              <Button className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">Save Settings</Button>
             </div>
           </div>
         )}

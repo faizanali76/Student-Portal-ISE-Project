@@ -11,7 +11,7 @@ const navItems = [
   { label: "My Courses", href: "/student/courses", icon: <BookOpen className="h-4 w-4" /> },
   { label: "Attendance", href: "/student/attendance", icon: <Bell className="h-4 w-4" /> },
   { label: "Results", href: "/student/results", icon: <BarChart3 className="h-4 w-4" /> },
-  { label: "Reports", href: "/student/reports", icon: <FileText className="h-4 w-4" /> },
+  { label: "Notifications", href: "/student/notifications", icon: <Bell className="h-4 w-4" /> },
   { label: "Settings", href: "/student/settings", icon: <Settings className="h-4 w-4" /> },
 ]
 

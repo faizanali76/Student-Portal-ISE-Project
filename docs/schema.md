@@ -1,4 +1,4 @@
-# DB Schema
+## db schema
 
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
@@ -54,6 +54,7 @@ CREATE TABLE public.courses (
   num_quizzes integer DEFAULT 0,
   num_midterms integer DEFAULT 2,
   num_finals integer DEFAULT 1,
+  total_classes integer DEFAULT 30,
   CONSTRAINT courses_pkey PRIMARY KEY (id),
   CONSTRAINT courses_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id)
 );

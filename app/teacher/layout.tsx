@@ -10,7 +10,6 @@ const navItems = [
   { label: "Courses", href: "/teacher/courses", icon: <BookOpen className="h-4 w-4" /> },
   { label: "Mark Attendance", href: "/teacher/attendance", icon: <ClipboardList className="h-4 w-4" /> },
   { label: "Upload Marks", href: "/teacher/marks", icon: <FileText className="h-4 w-4" /> },
-  { label: "Reports", href: "/teacher/reports", icon: <BarChart3 className="h-4 w-4" /> },
   { label: "Settings", href: "/teacher/settings", icon: <Settings className="h-4 w-4" /> },
 ]
 

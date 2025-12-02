@@ -269,6 +269,7 @@ export async function saveAssessmentMarks(
             obtained_marks: parseFloat(obtainedMarks) || 0
         }))
 
+
         // 3. Upsert Marks
         const { error: marksError } = await supabaseAdmin
             .from('student_marks')
@@ -277,6 +278,48 @@ export async function saveAssessmentMarks(
             })
 
         if (marksError) throw marksError
+
+            // 4. Create Notifications for students (async to not block response)
+            (async () => {
+                try {
+                    // Get course details
+                    const { data: course } = await supabaseAdmin
+                        .from('courses')
+                        .select('course_code')
+                        .eq('id', courseId)
+                        .single()
+
+                    if (!course) return
+
+                    // Get all student user_ids from enrollments
+                    const { data: enrollments } = await supabaseAdmin
+                        .from('enrollments')
+                        .select('student_id, students(user_id)')
+                        .eq('course_id', courseId)
+
+                    if (!enrollments) return
+
+                    // Create notifications for all students in the course
+                    const notifications = enrollments
+                        .filter((e: any) => e.students?.user_id)
+                        .map((e: any) => ({
+                            user_id: e.students.user_id,
+                            type: 'info',
+                            title: 'New Marks Posted',
+                            message: `Marks for ${name} have been uploaded for ${course.course_code}`,
+                            related_course_id: courseId
+                        }))
+
+                    if (notifications.length > 0) {
+                        await supabaseAdmin
+                            .from('notifications')
+                            .insert(notifications)
+                    }
+
+                } catch (err) {
+                    console.error('Error creating marks notifications:', err)
+                }
+            })()
 
         return { success: true, message: "Marks saved successfully" }
 
@@ -367,6 +410,104 @@ export async function saveAttendance(
 
         if (error) throw error
 
+            // 4. Check for Low Attendance (< 80%) and Notify
+            // We do this asynchronously to not block the UI
+            (async () => {
+                try {
+                    const affectedStudentIds = records.map(r => r.enrollment_id)
+
+                    // Get course details
+                    const { data: course } = await supabaseAdmin
+                        .from('courses')
+                        .select('course_code, total_classes')
+                        .eq('id', courseId)
+                        .single()
+
+                    if (!course) return
+
+                    const totalClasses = course.total_classes || 30
+
+                    // For each affected student, calculate new percentage
+                    for (const enrollmentId of affectedStudentIds) {
+                        // Get student user_id
+                        const { data: enrollment } = await supabaseAdmin
+                            .from('enrollments')
+                            .select('student_id, students(user_id)')
+                            .eq('id', enrollmentId)
+                            .single()
+
+                        if (!enrollment?.students) continue
+
+                        const students = enrollment.students as any
+                        const studentUserId = Array.isArray(students) ? students[0]?.user_id : students.user_id
+
+                        if (!studentUserId) continue
+
+                        // Calculate stats
+                        const { data: conductedDates } = await supabaseAdmin
+                            .from('attendance_records')
+                            .select('date, enrollments!inner(course_id)')
+                            .eq('enrollments.course_id', courseId)
+
+                        const classesConducted = new Set(conductedDates?.map((d: any) => d.date)).size
+
+                        const { count: classesAttended } = await supabaseAdmin
+                            .from('attendance_records')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('enrollment_id', enrollmentId)
+                            .eq('status', 'present')
+
+                        const percentage = classesConducted > 0
+                            ? Math.round(((classesAttended || 0) / classesConducted) * 100)
+                            : 100
+
+
+                        if (percentage < 80) {
+                            // Check if we already notified recently (e.g., in last 3 days) to avoid spam
+                            const threeDaysAgo = new Date()
+                            threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+
+                            const { data: existingNotif } = await supabaseAdmin
+                                .from('notifications')
+                                .select('id')
+                                .eq('user_id', studentUserId)
+                                .eq('related_course_id', courseId)
+                                .eq('type', 'warning')
+                                .gte('created_at', threeDaysAgo.toISOString())
+                                .limit(1)
+
+                            if (!existingNotif || existingNotif.length === 0) {
+                                await supabaseAdmin
+                                    .from('notifications')
+                                    .insert({
+                                        user_id: studentUserId,
+                                        type: 'warning',
+                                        title: 'Low Attendance Warning',
+                                        message: `Your attendance in ${course.course_code} has dropped to ${percentage}%. Please ensure you attend upcoming classes.`,
+                                        related_course_id: courseId
+                                    })
+                            }
+                        }
+
+                        // Also notify if marked absent on this specific date
+                        const currentRecord = records.find(r => r.enrollment_id === enrollmentId)
+                        if (currentRecord && currentRecord.status === 'absent') {
+                            await supabaseAdmin
+                                .from('notifications')
+                                .insert({
+                                    user_id: studentUserId,
+                                    type: 'warning',
+                                    title: 'Marked Absent',
+                                    message: `You were marked absent in ${course.course_code} on ${new Date(date).toLocaleDateString()}`,
+                                    related_course_id: courseId
+                                })
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error in auto-notification:', err)
+                }
+            })()
+
         return { success: true, message: "Attendance saved successfully" }
 
     } catch (error: any) {
@@ -431,9 +572,61 @@ export async function getTeacherDashboardStats(userId: string) {
                 avgAttendance = Math.round((presentCount / attendanceRecords.length) * 100)
             }
 
-            // Calculate Class Avg Marks (Mocked for now as marks table structure is complex)
-            // In a real scenario, we'd query the 'marks' or 'student_marks' table
-            const classAvg = 0 // Placeholder
+            // Calculate Class Avg Marks
+            // Get all assessments for this course
+            const { data: assessments } = await supabaseAdmin
+                .from('assessments')
+                .select('id, total_marks')
+                .eq('course_id', course.id)
+
+            let classAvg = 0
+            if (assessments && assessments.length > 0) {
+                const assessmentIds = assessments.map(a => a.id)
+
+                // Get all marks for these assessments
+                const { data: allMarks } = await supabaseAdmin
+                    .from('student_marks')
+                    .select('obtained_marks, assessment_id')
+                    .in('assessment_id', assessmentIds)
+
+                if (allMarks && allMarks.length > 0) {
+                    // Calculate total possible marks (sum of all assessment totals * number of students who have marks)
+                    // Actually, simpler way: Calculate percentage for each student, then average those.
+                    // Or: (Total Obtained / Total Max) * 100 for the whole class.
+
+                    // Let's go with: Average of (Student's Total Obtained / Total Max Possible) * 100
+
+                    const totalMaxMarks = assessments.reduce((sum, a) => sum + a.total_marks, 0)
+
+                    if (totalMaxMarks > 0) {
+                        const studentTotals: Record<string, number> = {}
+                        allMarks.forEach((m: any) => {
+                            // We don't have student_id in this query, let's add it
+                        })
+                    }
+
+                    // Re-query with student_id
+                    const { data: allMarksWithStudent } = await supabaseAdmin
+                        .from('student_marks')
+                        .select('student_id, obtained_marks')
+                        .in('assessment_id', assessmentIds)
+
+                    if (allMarksWithStudent) {
+                        const studentObtained: Record<string, number> = {}
+                        allMarksWithStudent.forEach((m: any) => {
+                            studentObtained[m.student_id] = (studentObtained[m.student_id] || 0) + (m.obtained_marks || 0)
+                        })
+
+                        const totalMax = assessments.reduce((sum, a) => sum + a.total_marks, 0)
+
+                        if (totalMax > 0) {
+                            const percentages = Object.values(studentObtained).map(obtained => (obtained / totalMax) * 100)
+                            const sumPercentages = percentages.reduce((sum, p) => sum + p, 0)
+                            classAvg = Math.round(sumPercentages / percentages.length)
+                        }
+                    }
+                }
+            }
 
             return {
                 id: course.id,

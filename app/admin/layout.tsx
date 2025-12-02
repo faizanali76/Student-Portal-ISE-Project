@@ -25,7 +25,6 @@ const navItems = [
       { label: "Assign Courses", href: "/admin/courses/assign", icon: <UserCog className="h-4 w-4" /> },
     ],
   },
-  { label: "Reports", href: "/admin/reports", icon: <FileText className="h-4 w-4" /> },
   { label: "Settings", href: "/admin/settings", icon: <Settings className="h-4 w-4" /> },
 ]
 
